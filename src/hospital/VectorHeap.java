@@ -1,140 +1,157 @@
 package hospital;
 
-import java.util.Vector;
-
 /**
- * Implementación de una cola de prioridad usando un Heap basado en Vector
- * @param <E> tipo de elementos en el heap, debe de ser Comparable
+ * Implementación de ColaPrioridad usando un heap binario
+ * @param <E> Tipo de elementos almacenados en el heap
  */
-public class VectorHeap<E extends Comparable<E>> implements PriorityQueue<E> {
-    protected Vector<E> data;
-
-
+class VectorHeap<E extends Comparable<E>> implements ColaPrioridad<E> {
+    private java.util.Vector<E> datos;
+    
+ 
     public VectorHeap() {
-        data = new Vector<>();
+        datos = new java.util.Vector<E>();
+        // Añadimos elemento nulo en la posición 0 para simplificar la indexación
+        datos.add(null);
     }
-
+    
     /**
-     * Constructor que crea un heap a partir de un vector existente
-     * @param v vector con elementos iniciales
+     * Obtiene el índice del padre de un nodo
+     * @param i Índice del nodo actual
+     * @return Índice del padre
      */
-    public VectorHeap(Vector<E> v) {
-        data = new Vector<>(v.size());
-        for (E item : v) {
-            data.add(item);
-        }
-        heapify();
+    protected int padre(int i) {
+        return i / 2;
     }
-
+    
     /**
-     * Retorna el índice del padre de un nodo
-     * @param i índice del nodo hijo
-     * @return índice del nodo padre
+     * Obtiene el índice del hijo izquierdo de un nodo
+     * @param i Índice del nodo actual
+     * @return Índice del hijo izquierdo
      */
-    protected static int parent(int i) {
-        return (i - 1) / 2;
+    protected int izquierdo(int i) {
+        return 2 * i;
     }
-
+    
     /**
-     * Retorna el índice del hijo izquierdo
-     * @param i índice del nodo padre
-     * @return índice del hijo izquierdo
+     * Obtiene el índice del hijo derecho de un nodo
+     * @param i Índice del nodo actual
+     * @return Índice del hijo derecho
      */
-    protected static int left(int i) {
-        return 2 * i + 1;
+    protected int derecho(int i) {
+        return (2 * i) + 1;
     }
-
+    
     /**
-     * Retorna el índice del hijo derecho
-     * @param i índice del nodo padre
-     * @return índice del hijo derecho
+     * Verifica si un nodo tiene hijo izquierdo
+     * @param i Índice del nodo actual
+     * @return true si tiene hijo izquierdo
      */
-    protected static int right(int i) {
-        return 2 * (i + 1);
+    protected boolean tieneIzquierdo(int i) {
+        return izquierdo(i) < datos.size();
     }
-
+    
     /**
-     * Mueve un nodo hacia arriba en el heap para mantener la propiedad de heap
-     * @param leaf índice del nodo a mover hacia arriba
+     * Verifica si un nodo tiene hijo derecho
+     * @param i Índice del nodo actual
+     * @return true si tiene hijo derecho
      */
-    protected void percolateUp(int leaf) {
-        int parent = parent(leaf);
-        E value = data.get(leaf);
-        while (leaf > 0 && (value.compareTo(data.get(parent)) < 0)) {
-            data.set(leaf, data.get(parent));
-            leaf = parent;
-            parent = parent(leaf);
-        }
-        data.set(leaf, value);
+    protected boolean tieneDerecho(int i) {
+        return derecho(i) < datos.size();
     }
-
-    @Override
-    public void add(E value) {
-        data.add(value);
-        percolateUp(data.size() - 1);
-    }
-
+    
     /**
-     * Mueve un nodo hacia abajo en el heap para mantener la propiedad de heap
-     * @param root índice del nodo raíz a mover hacia abajo
+     * Hace pasar un elemento hacia arriba hasta su posición correcta en el heap
+     * @param hoja Índice del elemento a mover hacia arriba
      */
-    protected void pushDown(int root) {
-        int heapSize = data.size();
-        E value = data.get(root);
+    protected void fluirHaciaArriba(int hoja) {
+        int padre = padre(hoja);
+        E valor = datos.get(hoja);
         
-        while (root < heapSize) {
-            int childPos = left(root);
-            if (childPos < heapSize) {
-                if (right(root) < heapSize && 
-                    data.get(childPos + 1).compareTo(data.get(childPos)) < 0) {
-                    childPos++;
-                }
-                if (data.get(childPos).compareTo(value) < 0) {
-                    data.set(root, data.get(childPos));
-                    root = childPos;
-                } else {
-                    data.set(root, value);
-                    return;
-                }
-            } else {
-                data.set(root, value);
-                return;
+        // Mientras no estemos en la raíz y el valor del padre > valor
+        while (hoja > 1 && datos.get(padre).compareTo(valor) > 0) {
+            datos.set(hoja, datos.get(padre));  // Mover padre hacia abajo
+            hoja = padre;                       // Subir
+            padre = padre(hoja);
+        }
+        
+        datos.set(hoja, valor);  
+    }
+    
+    /**
+     * Hace pasar un elemento hacia abajo hasta su posición correcta en el heap
+     * @param raiz Índice del elemento a mover hacia abajo
+     */
+    protected void empujarRaizHaciaAbajo(int raiz) {
+        int tamañoHeap = datos.size() - 1;
+        if (raiz < 1 || raiz > tamañoHeap) return;
+        
+        E valor = datos.get(raiz);
+        int posicion = raiz;         // Posición actual siendo empujada hacia abajo
+        int hijo = izquierdo(posicion); // Intentar con hijo izquierdo primero
+        
+        while (hijo <= tamañoHeap) {
+            // Elegimos el hijo menor
+            if (hijo < tamañoHeap && 
+                datos.get(hijo).compareTo(datos.get(hijo+1)) > 0) {
+                hijo++;  // Hijo derecho es menor
             }
+            
+            if (valor.compareTo(datos.get(hijo)) <= 0) break;
+            
+            // Mover el hijo menor hacia arriba
+            datos.set(posicion, datos.get(hijo));
+            posicion = hijo;           // Mover hacia abajo
+            hijo = izquierdo(posicion); // Mover al hijo izquierdo
         }
+        
+        datos.set(posicion, valor);  // Almacenar valor en la posición correcta
     }
-
+    
     /**
-     * Convierte el vector en un heap válido
+     * Añade un elemento a la cola con prioridad
+     * @param elemento Elemento a añadir
      */
-    protected void heapify() {
-        for (int i = data.size() / 2 - 1; i >= 0; i--) {
-            pushDown(i);
+    @Override
+    public void agregar(E elemento) {
+        datos.add(elemento);             // Añadir al final
+        fluirHaciaArriba(datos.size()-1); // pasa hacia arriba
+    }
+    
+    /**
+     * Quita el elemento con mayor prioridad
+     * @return Elemento con mayor prioridad
+     */
+    @Override
+    public E quitar() {
+        if (estaVacia()) return null;
+        
+        E valMin = datos.get(1);                // El valor mínimo está en la raíz
+        datos.set(1, datos.get(datos.size()-1)); // Reemplazar con el último elemento
+        datos.setSize(datos.size()-1);           
+        
+        if (datos.size() > 1) {
+            empujarRaizHaciaAbajo(1);  
         }
+        
+        return valMin;
     }
+    
 
-    /**
-     * Remueve y retorna el elemento con mayor prioridad
-     * @return elemento con mayor prioridad, o null si está vacío
-     */
     @Override
-    public E remove() {
-        if (data.isEmpty()) return null;
-        E minVal = data.get(0);
-        data.set(0, data.get(data.size() - 1));
-        data.setSize(data.size() - 1);
-        if (!data.isEmpty()) pushDown(0);
-        return minVal;
+    public boolean estaVacia() {
+        return datos.size() <= 1;  // Solo el elemento nulo en la posición 0 que definimos arriba
     }
+    
+ 
+    @Override
+    public int tamaño() {
+        return datos.size() - 1;  // No contar el elemento nulo en la posición 0 que definimos arriba
+    }
+    
 
     @Override
-    public boolean isEmpty() { return data.isEmpty(); }
-
-    @Override
-    public int size() { return data.size(); }
-
-    @Override
-    public void clear() { data.clear(); }
-
-    @Override
-    public E getFirst() { return data.isEmpty() ? null : data.get(0); }
+    public void limpiar() {
+        datos.clear();
+        datos.add(null);  // Añadir elemento nulo en la posición 0
+    }
 }
